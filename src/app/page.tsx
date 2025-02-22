@@ -1,4 +1,4 @@
-import { ResearchInterface } from "../components/ResearchInterface";
+import { ResearchInterface } from "@/components/ResearchInterface";
 import { ResearchResultsTable } from "../components/ResearchResultsTable";
 
 export default function Home() {
