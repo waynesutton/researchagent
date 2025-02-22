@@ -155,3 +155,5 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
    - Source display
    - Formatting components
    - Icon integration
+
+[![Netlify Status](https://api.netlify.com/api/v1/badges/61515d34-cbb9-4933-ba64-b3eb60b436ea/deploy-status)](https://app.netlify.com/sites/researchagent/deploys)
