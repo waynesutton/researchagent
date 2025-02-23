@@ -11,4 +11,7 @@
   package = "@netlify/plugin-nextjs"
 
 [functions]
-  node_bundler = "esbuild" 
+  node_bundler = "esbuild"
+
+[context.production.environment]
+  NEXT_PUBLIC_CONVEX_URL = "https://brave-capybara-526.convex.cloud" 

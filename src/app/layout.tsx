@@ -1,7 +1,10 @@
+"use client";
+
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { ConvexClientProvider } from "@/components/providers/convex-client-provider";
+import { ConvexProvider } from "convex/react";
+import { convex } from "@/lib/convex";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -17,7 +20,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body className={`${inter.variable} antialiased`}>
-        <ConvexClientProvider>{children}</ConvexClientProvider>
+        <ConvexProvider client={convex}>{children}</ConvexProvider>
       </body>
     </html>
   );
