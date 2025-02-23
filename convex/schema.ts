@@ -15,6 +15,7 @@ export default defineSchema({
     content: v.string(),
     role: v.union(v.literal("user"), v.literal("assistant")),
     createdAt: v.number(),
+    model: v.union(v.literal("gpt4"), v.literal("claude"), v.literal("mistral"), v.literal("grok")),
     metadata: v.optional(
       v.object({
         sources: v.array(

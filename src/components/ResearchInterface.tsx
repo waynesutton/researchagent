@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
-import { Send, Loader2, XCircle, Copy, Check, Trash2 } from "lucide-react";
+import { Send, Loader2, XCircle, Copy, Check, Trash2, PanelRightClose } from "lucide-react";
+import { SelectNative } from "@/components/ui/select-native";
 
 interface Message {
   _id: Id<"messages">;
@@ -18,9 +19,12 @@ interface Message {
   };
 }
 
+type ModelType = "gpt4" | "claude" | "mistral" | "grok";
+
 export function ResearchInterface() {
   const [message, setMessage] = useState("");
   const [isResearching, setIsResearching] = useState(false);
+  const [selectedModel, setSelectedModel] = useState<ModelType>("gpt4");
   const [conversationId, setConversationId] = useState<Id<"conversations"> | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const createConversation = useMutation(api.conversations.create);
@@ -47,6 +51,7 @@ export function ResearchInterface() {
       await sendMessage({
         conversationId: currentConversationId,
         content: message,
+        model: selectedModel,
       });
       setMessage("");
     } catch (error) {
@@ -76,7 +81,7 @@ export function ResearchInterface() {
     setIsResearching(false);
   };
 
-  // Reset researching state when new messages arrive and they include an assistant response
+  // Update useEffect to only handle research state
   useEffect(() => {
     if (messages?.length && messages[messages.length - 1].role === "assistant") {
       setIsResearching(false);
@@ -96,11 +101,26 @@ export function ResearchInterface() {
           </p>
         </div>
         <div className="mb-4">
+          <h2 className="font-mono text-sm mb-2">Select AI Model:</h2>
+          <div className="*:not-first:mt-2">
+            <SelectNative
+              id="model-select"
+              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              defaultValue={selectedModel}
+              onChange={(e) => setSelectedModel(e.target.value as ModelType)}>
+              <option value="gpt4">OpenAI GPT-4</option>
+              <option value="claude">Anthropic Claude</option>
+              <option value="mistral">Mistral AI</option>
+              <option value="grok">Grok 3</option>
+            </SelectNative>
+          </div>
+        </div>
+        <div className="mb-4">
           <h2 className="font-mono text-sm mb-2">Prompt:</h2>
           <p className="text-sm text-gray-600">
             Ask about a company (e.g., 'Tell me about Apple') <br></br> Results are saved below.
           </p>
-          <div className="rounded p-3"></div>
+          <div className="rounded p-3"> </div>
         </div>
         <div className="mt-auto">
           <form onSubmit={handleSubmit} className="border-t border-gray-200 pt-4">
@@ -164,6 +184,17 @@ export function ResearchInterface() {
             </button>
           )}
         </div>
+        {/* 
+          Message display area that shows:
+          1. A scrollable list of messages between user and AI assistant
+          2. For assistant messages:
+             - The message content with a copy button
+             - Source links if available in message metadata
+          3. Empty state message when no messages exist
+          4. Loading state with spinner when research is in progress
+          
+          The container has a fixed height of 500px and scrolls vertically when content overflows.
+        */}
         <div className="h-[500px] p-6 overflow-y-auto">
           {messages?.map((message: Message) => (
             <div

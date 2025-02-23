@@ -5,6 +5,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { ResearchModal } from "./ResearchModal";
 import ReactMarkdown from "react-markdown";
+import { PanelBottomClose } from "lucide-react";
 
 export function ResearchResultsTable() {
   const [isTableVisible, setIsTableVisible] = useState(true);
@@ -29,7 +30,8 @@ export function ResearchResultsTable() {
             <h2 className="text-lg font-normal text-black">Research Results</h2>
             <button
               onClick={() => setIsTableVisible(!isTableVisible)}
-              className="px-3 py-1 text-sm text-black border border-black rounded hover:bg-gray-100 transition-colors">
+              className="px-3 py-1 text-sm text-black border border-black rounded hover:bg-gray-100 transition-colors flex items-center gap-1">
+              <PanelBottomClose size={16} />
               {isTableVisible ? "hide" : "show"}
             </button>
           </div>
@@ -105,7 +107,9 @@ export function ResearchResultsTable() {
                       </td>
                       <td className="p-3 truncate">
                         <div className="prose prose-sm max-w-none font-mono text-sm">
-                          <ReactMarkdown>{result.notes || "Click to add notes..."}</ReactMarkdown>
+                          <ReactMarkdown>
+                            {result.notes || "Open modal to add notes..."}
+                          </ReactMarkdown>
                         </div>
                       </td>
                     </tr>
@@ -128,7 +132,15 @@ export function ResearchResultsTable() {
       )}
 
       {deleteConfirmation && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center"
+          onKeyDown={(e) => {
+            if (e.key === "Escape") setDeleteConfirmation(null);
+            if (e.key === "Enter" && document.activeElement?.id === "delete-confirm") {
+              deleteResult({ id: deleteConfirmation.id });
+              setDeleteConfirmation(null);
+            }
+          }}>
           <div className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full">
             <h3 className="text-lg font-medium mb-4">Delete Confirmation</h3>
             <p className="mb-6">
@@ -138,15 +150,18 @@ export function ResearchResultsTable() {
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => setDeleteConfirmation(null)}
-                className="px-4 py-2 text-sm border border-black rounded hover:bg-gray-100">
+                className="px-4 py-2 text-sm border border-black rounded hover:bg-gray-100"
+                tabIndex={0}>
                 Cancel
               </button>
               <button
+                id="delete-confirm"
                 onClick={() => {
                   deleteResult({ id: deleteConfirmation.id });
                   setDeleteConfirmation(null);
                 }}
-                className="px-4 py-2 text-sm bg-red-600 text-white rounded hover:bg-red-700">
+                className="px-4 py-2 text-sm bg-red-600 text-white rounded hover:bg-red-700"
+                tabIndex={0}>
                 Delete
               </button>
             </div>

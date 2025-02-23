@@ -127,6 +127,7 @@ http.route({
                     conversationId,
                     content: researchContent,
                     role: "assistant",
+                    model: "gpt4",
                     metadata: {
                       sources: [],
                     },
@@ -169,6 +170,7 @@ http.route({
         conversationId,
         content: researchContent,
         role: "assistant",
+        model: "gpt4",
         metadata: {
           sources: sources.map((source: any) => ({
             title: source.title,

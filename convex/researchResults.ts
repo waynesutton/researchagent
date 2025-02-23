@@ -49,6 +49,17 @@ export const updateNotes = mutation({
   },
 });
 
+export const get = query({
+  args: { id: v.id("researchResults") },
+  handler: async (ctx, args) => {
+    const result = await ctx.db.get(args.id);
+    if (!result) {
+      throw new Error("Research result not found");
+    }
+    return result;
+  },
+});
+
 // Internal functions
 export const create = internalMutation({
   args: {

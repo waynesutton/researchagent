@@ -13,6 +13,7 @@ export const get = internalQuery({
     content: v.string(),
     role: v.union(v.literal("user"), v.literal("assistant")),
     createdAt: v.number(),
+    model: v.union(v.literal("gpt4"), v.literal("claude"), v.literal("mistral"), v.literal("grok")),
     metadata: v.optional(
       v.object({
         sources: v.array(
@@ -43,6 +44,12 @@ export const list = query({
       content: v.string(),
       role: v.union(v.literal("user"), v.literal("assistant")),
       createdAt: v.number(),
+      model: v.union(
+        v.literal("gpt4"),
+        v.literal("claude"),
+        v.literal("mistral"),
+        v.literal("grok")
+      ),
       metadata: v.optional(
         v.object({
           sources: v.array(
@@ -69,6 +76,7 @@ export const send = internalMutation({
     conversationId: v.id("conversations"),
     content: v.string(),
     role: v.union(v.literal("user"), v.literal("assistant")),
+    model: v.union(v.literal("gpt4"), v.literal("claude"), v.literal("mistral"), v.literal("grok")),
     metadata: v.optional(
       v.object({
         sources: v.array(
@@ -87,6 +95,7 @@ export const send = internalMutation({
       content: args.content,
       role: args.role,
       createdAt: Date.now(),
+      model: args.model,
       metadata: args.metadata,
     });
 
@@ -98,6 +107,7 @@ export const sendMessage = mutation({
   args: {
     conversationId: v.id("conversations"),
     content: v.string(),
+    model: v.union(v.literal("gpt4"), v.literal("claude"), v.literal("mistral"), v.literal("grok")),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
@@ -107,10 +117,14 @@ export const sendMessage = mutation({
       content: args.content,
       role: "user",
       createdAt: Date.now(),
+      model: args.model,
     });
 
     // Schedule research
-    await ctx.scheduler.runAfter(0, internal.research.performResearch, { messageId });
+    await ctx.scheduler.runAfter(0, internal.research.performResearch, {
+      messageId,
+      model: args.model,
+    });
 
     return null;
   },
@@ -120,16 +134,16 @@ export const generateResponse = mutation({
   args: {
     conversationId: v.id("conversations"),
     userMessage: v.string(),
+    model: v.union(v.literal("gpt4"), v.literal("claude"), v.literal("mistral"), v.literal("grok")),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    // In a real implementation, this would call an AI service
-    // For now, we'll just echo back a simple response
     await ctx.db.insert("messages", {
       conversationId: args.conversationId,
       content: `You asked: "${args.userMessage}"\n\nI am researching this company...`,
       role: "assistant",
       createdAt: Date.now(),
+      model: args.model,
       metadata: {
         sources: [
           {

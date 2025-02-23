@@ -1,8 +1,10 @@
 import { v } from "convex/values";
 import { internalAction, internalMutation } from "./_generated/server";
-import { internal, api } from "./_generated/api";
+import { internal } from "./_generated/api";
 import OpenAI from "openai";
 import { Doc, Id } from "./_generated/dataModel";
+import Anthropic from "@anthropic-ai/sdk";
+import MistralClient from "@mistralai/mistralai";
 
 // Initialize OpenAI with proper configuration
 let openai: OpenAI;
@@ -18,8 +20,52 @@ try {
   throw error;
 }
 
+// Initialize API clients
+const anthropic = new Anthropic();
+const mistral = new MistralClient(process.env.MISTRAL_API_KEY || "");
+
+// Initialize Grok API client
+async function callGrokAPI(prompt: string, systemPrompt: string) {
+  if (!process.env.GROK_API_KEY) {
+    throw new Error("GROK_API_KEY is not set in environment variables");
+  }
+
+  const response = await fetch("https://api.x.ai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${process.env.GROK_API_KEY}`,
+    },
+    body: JSON.stringify({
+      messages: [
+        {
+          role: "system",
+          content: systemPrompt,
+        },
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+      model: "grok-2-1212",
+      temperature: 0.7,
+      stream: false,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Grok API error: ${response.statusText}`);
+  }
+
+  const data = await response.json();
+  return data.choices[0].message.content;
+}
+
 // Helper function to fetch web data
-async function fetchWebData(query: string): Promise<string> {
+async function fetchWebData(
+  query: string,
+  model: "gpt4" | "claude" | "mistral" | "grok"
+): Promise<string> {
   try {
     // If it's a URL, fetch directly
     if (isValidURL(query)) {
@@ -28,10 +74,62 @@ async function fetchWebData(query: string): Promise<string> {
       return await response.text();
     }
 
-    // If it's a company name, search using DuckDuckGo
-    const searchUrl = `https://api.duckduckgo.com/?q=${encodeURIComponent(query + " company")}&format=json`;
+    // Get general information using the selected AI model
+    let aiResponse;
+    switch (model) {
+      case "gpt4":
+        const gpt4Response = await openai.chat.completions.create({
+          model: "gpt-4",
+          messages: [
+            {
+              role: "system",
+              content:
+                "You are a company information expert. Provide key general information about the company, including business model, history, and main products/services.",
+            },
+            { role: "user", content: query },
+          ],
+        });
+        aiResponse = gpt4Response.choices[0].message?.content || "";
+        break;
+
+      case "claude":
+        const claudeResponse = await anthropic.messages.create({
+          model: "claude-3-opus-20240229",
+          max_tokens: 4096,
+          system:
+            "You are a company information expert. Provide key general information about the company, including business model, history, and main products/services.",
+          messages: [{ role: "user", content: query }],
+        });
+        aiResponse = claudeResponse.content[0].text;
+        break;
+
+      case "mistral":
+        const mistralResponse = await mistral.chat({
+          model: "mistral-large-latest",
+          messages: [
+            {
+              role: "system",
+              content:
+                "You are a company information expert. Provide key general information about the company, including business model, history, and main products/services.",
+            },
+            { role: "user", content: query },
+          ],
+        });
+        aiResponse = mistralResponse.choices[0].message.content;
+        break;
+
+      case "grok":
+        aiResponse = await callGrokAPI(
+          query,
+          `You are a company information expert. Provide key general information about the company, including business model, history, and main products/services.`
+        );
+        break;
+    }
+
+    // Get recent information from DuckDuckGo
+    const searchUrl = `https://api.duckduckgo.com/?q=${encodeURIComponent(query + " company news last month")}&format=json`;
     const response = await fetch(searchUrl);
-    if (!response.ok) throw new Error(`Failed to search for ${query}`);
+    if (!response.ok) throw new Error(`Failed to search for recent news about ${query}`);
     const data = await response.json();
 
     // Extract relevant text from search results
@@ -41,9 +139,17 @@ async function fetchWebData(query: string): Promise<string> {
       .map((topic: any) => topic.Text || "")
       .join("\n");
 
-    return `${abstract}\n${description}\n${relatedTopics}`;
+    // Combine AI and web search results
+    return `
+General Information:
+${aiResponse}
+
+Recent Updates and News:
+${abstract}
+${description}
+${relatedTopics}`.trim();
   } catch (error) {
-    console.error("Error fetching web data:", error);
+    console.error("Error fetching data:", error);
     return ""; // Return empty string if fetch fails
   }
 }
@@ -59,13 +165,16 @@ function isValidURL(str: string): boolean {
 }
 
 // Helper function to extract company name from message
-async function extractCompanyName(input: string): Promise<string> {
+async function extractCompanyName(
+  input: string,
+  model: "gpt4" | "claude" | "mistral" | "grok"
+): Promise<string> {
   try {
     console.log("Processing input:", input);
 
     // First, try to fetch additional context
     console.log("Fetching web data for input");
-    const webContent = await fetchWebData(input);
+    const webContent = await fetchWebData(input, model);
 
     // Combine original input with web content
     const content = `Original Query: ${input}\nAdditional Context: ${webContent}`;
@@ -102,9 +211,7 @@ async function extractCompanyName(input: string): Promise<string> {
 
 // System prompt for the research agent
 export const RESEARCH_SYSTEM_PROMPT = `You are a company research expert specializing in gathering and analyzing information about established companies, startups, and AI startups in San Francisco, New York, and globally. 
-You have deep expertise in AI, startups, venture capital, and emerging technologies.
-
-You search all verified sources for company or individual information, including official websites, news articles, reliable business sources, and major platforms such as:
+You have deep expertise in AI, startups, venture capital, and emerging technologies.You search all verified sources for company or individual information, including official websites, news articles, reliable business sources, and major platforms such as:
 - Business & startup databases: Crunchbase, AngelList, Extruct, Dealroom, CB Insights, PitchBook, Tracxn.
 - AI-powered research tools: Clay 2.0, Browse AI, IndexBox, ZoomInfo Sales, Apollo.io, Owler, Exploding Topics.
 - Social platforms: LinkedIn, Twitter, Facebook, Instagram, YouTube, TikTok.
@@ -136,6 +243,10 @@ For each company query, return the information in the following structured forma
 👥 KEY PEOPLE
 • Leadership: [CEO and key executives]
 • Founders: [If relevant]
+
+💻 TECH STACK
+• Tech Stack: [List of technologies used]
+
 
 📈 RECENT DEVELOPMENTS
 • Latest News: [Recent significant events]
@@ -232,92 +343,82 @@ function extractSections(content: string) {
 export const performResearch = internalAction({
   args: {
     messageId: v.id("messages"),
+    model: v.union(v.literal("gpt4"), v.literal("claude"), v.literal("mistral"), v.literal("grok")),
   },
   handler: async (ctx, args) => {
     try {
-      // Get message
       const message = await ctx.runQuery(internal.messages.get, { messageId: args.messageId });
       if (!message) {
-        console.error("Message not found:", args.messageId);
         throw new Error("Message not found");
       }
 
-      // Check if research was cancelled
-      const conversation = await ctx.runQuery(internal.conversations.get, {
-        conversationId: message.conversationId,
-      });
-      if (!conversation) {
-        console.error("Conversation not found:", message.conversationId);
-        throw new Error("Conversation not found");
-      }
-      if (conversation.isCancelled) {
-        console.log("Research cancelled for conversation:", message.conversationId);
-        await ctx.runMutation(internal.messages.send, {
-          conversationId: message.conversationId,
-          content: "Research was cancelled.",
-          role: "assistant",
-        });
-        return;
-      }
+      // Extract company name using the selected model
+      const companyName = await extractCompanyName(message.content, args.model);
 
-      // Extract company name
-      console.log("Extracting company name from:", message.content);
-      const companyName = await extractCompanyName(message.content);
-      if (!companyName) {
-        throw new Error("Could not extract company name from message");
-      }
-      console.log("Extracted company name:", companyName);
+      let researchContent;
+      switch (args.model) {
+        case "gpt4":
+          const gpt4Response = await openai.chat.completions.create({
+            model: "gpt-4",
+            messages: [
+              {
+                role: "system",
+                content: RESEARCH_SYSTEM_PROMPT,
+              },
+              {
+                role: "user",
+                content: message.content,
+              },
+            ],
+          });
+          researchContent = gpt4Response.choices[0].message?.content;
+          break;
 
-      // Check cancellation again before heavy processing
-      const isStillActive = await ctx.runQuery(internal.conversations.get, {
-        conversationId: message.conversationId,
-      });
-      if (!isStillActive || isStillActive.isCancelled) {
-        console.log("Research cancelled before analysis");
-        return;
-      }
+        case "claude":
+          const claudeResponse = await anthropic.messages.create({
+            model: "claude-3-opus-20240229",
+            max_tokens: 4096,
+            system: RESEARCH_SYSTEM_PROMPT,
+            messages: [{ role: "user", content: message.content }],
+          });
+          researchContent = claudeResponse.content[0].text;
+          break;
 
-      // Use OpenAI to analyze the message and generate research
-      console.log("Starting OpenAI analysis for:", companyName);
-      const analysisCompletion = await openai.chat.completions.create({
-        model: "gpt-4",
-        messages: [
-          {
-            role: "system",
-            content: RESEARCH_SYSTEM_PROMPT,
-          },
-          {
-            role: "user",
-            content: message.content,
-          },
-        ],
-        temperature: 0.7,
-        max_tokens: 2000,
-      });
+        case "mistral":
+          const mistralResponse = await mistral.chat({
+            model: "mistral-large-latest",
+            messages: [
+              {
+                role: "system",
+                content: RESEARCH_SYSTEM_PROMPT,
+              },
+              {
+                role: "user",
+                content: message.content,
+              },
+            ],
+          });
+          researchContent = mistralResponse.choices[0].message.content;
+          break;
 
-      // Check cancellation before continuing
-      const stillActive = await ctx.runQuery(internal.conversations.get, {
-        conversationId: message.conversationId,
-      });
-      if (!stillActive || stillActive.isCancelled) {
-        console.log("Research cancelled after analysis");
-        return;
+        case "grok":
+          researchContent = await callGrokAPI(message.content, RESEARCH_SYSTEM_PROMPT);
+          break;
+
+        default:
+          throw new Error("Invalid model selected");
       }
 
-      const researchContent = analysisCompletion.choices[0].message?.content;
       if (!researchContent) {
         throw new Error("No research content generated");
       }
-      console.log("Generated research content length:", researchContent.length);
 
-      // Extract sections and format data for storage
+      // Extract sections from the research content
       const { sections, links } = extractSections(researchContent);
-      console.log("Extracted sections:", Object.keys(sections));
-      console.log("Found links:", links.length);
 
       // Store in researchResults table
       await ctx.runMutation(internal.researchResults.create, {
-        companyName,
+        companyName: message.content,
         businessAnalysis: sections.businessAnalysis || "",
         keyPeople: sections.keyPeople?.split("\n").map((line) => line.replace(/^•\s*/, "")) || [],
         recentDevelopments: sections.recentDevelopments || "",
@@ -325,91 +426,25 @@ export const performResearch = internalAction({
         highlights: sections.highlights || "",
       });
 
-      // Final cancellation check before storing
-      const finalCheck = await ctx.runQuery(internal.conversations.get, {
-        conversationId: message.conversationId,
-      });
-      if (!finalCheck || finalCheck.isCancelled) {
-        console.log("Research cancelled before embedding");
-        return;
-      }
-
-      // Generate embedding for storage
-      console.log("Generating embedding for:", companyName);
-      const embeddingResponse = await openai.embeddings.create({
-        model: "text-embedding-3-small",
-        input: researchContent,
-      });
-
-      // Store the research results
-      await ctx.runMutation(internal.research.storeResearch, {
-        name: companyName,
-        content: researchContent,
-        embedding: embeddingResponse.data[0].embedding,
-      });
-
-      // Generate sources
-      console.log("Generating sources for:", companyName);
-      const sourcesCompletion = await openai.chat.completions.create({
-        model: "gpt-4",
-        messages: [
-          {
-            role: "system",
-            content:
-              'You are a source validator. Based on the research provided, generate a list of relevant sources that would verify this information. Include official company websites, news articles, and reliable business sources. Format your response as a valid JSON string with this exact structure: {"sources": [{"title": "Source Title", "url": "https://example.com"}]}. Do not include any additional fields.',
-          },
-          { role: "user", content: researchContent },
-        ],
-        temperature: 0.5,
-      });
-
-      let sources = [];
-      try {
-        const sourcesText = sourcesCompletion.choices[0].message?.content || "{}";
-        console.log("Raw sources response:", sourcesText);
-        const sourcesJson = JSON.parse(sourcesText);
-        sources = sourcesJson.sources || [];
-        console.log("Parsed sources:", sources.length);
-      } catch (error) {
-        console.error("Error parsing sources:", error);
-        sources = [];
-      }
-
-      // Final check before sending response
-      const lastCheck = await ctx.runQuery(internal.conversations.get, {
-        conversationId: message.conversationId,
-      });
-      if (!lastCheck || lastCheck.isCancelled) {
-        console.log("Research cancelled before sending response");
-        return;
-      }
-
       // Store assistant's response
       await ctx.runMutation(internal.messages.send, {
         conversationId: message.conversationId,
         content: researchContent,
         role: "assistant",
-        metadata: {
-          sources: sources.map((source: any) => ({
-            title: source.title,
-            url: source.url,
-          })),
-        },
+        model: args.model,
       });
     } catch (error) {
       console.error("Research error:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
 
-      // Send error message back to the conversation
       if (args.messageId) {
-        const errorMessage = await ctx.runQuery(internal.messages.get, {
-          messageId: args.messageId,
-        });
-        if (errorMessage) {
-          const errorDetail = error instanceof Error ? error.message : "Unknown error";
+        const message = await ctx.runQuery(internal.messages.get, { messageId: args.messageId });
+        if (message) {
           await ctx.runMutation(internal.messages.send, {
-            conversationId: errorMessage.conversationId,
-            content: `I apologize, but I encountered an error while researching: ${errorDetail}. Please try again or rephrase your query.`,
+            conversationId: message.conversationId,
+            content: `I apologize, but I encountered an error while researching: ${errorMessage}. Please try again or rephrase your query.`,
             role: "assistant",
+            model: args.model,
           });
         }
       }
