@@ -40,7 +40,7 @@ export default function Home() {
             </a>
             . The source code is available on{" "}
             <a
-              href="#"
+              href="https://github.com/waynesutton/researchagent"
               target="_blank"
               rel="noopener noreferrer"
               className="hover:underline text-blue-600">
