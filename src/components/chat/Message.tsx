@@ -1,8 +1,10 @@
 "use client";
 
-import { ReactNode } from "react";
+import { ReactNode, isValidElement } from "react";
+import { Copy } from "lucide-react";
 
 interface MessageProps {
+  role: "user" | "assistant";
   children: ReactNode;
 }
 
@@ -62,7 +64,7 @@ export function AssistantMessage({ children, sources }: AssistantMessageProps) {
   const handleCopy = () => {
     if (typeof children === "string") {
       navigator.clipboard.writeText(children);
-    } else if (children?.props?.children) {
+    } else if (isValidElement(children) && typeof children.props?.children === "string") {
       navigator.clipboard.writeText(children.props.children);
     }
   };
@@ -131,6 +133,30 @@ export function AssistantMessage({ children, sources }: AssistantMessageProps) {
             </ul>
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+export function Message({ role, children }: MessageProps) {
+  const handleCopy = () => {
+    if (typeof children === "string") {
+      navigator.clipboard.writeText(children);
+    } else if (isValidElement(children) && typeof children.props?.children === "string") {
+      navigator.clipboard.writeText(children.props.children);
+    }
+  };
+
+  return (
+    <div className={`flex gap-3 ${role === "assistant" ? "bg-gray-50" : ""} p-4`}>
+      <div className="flex-1 space-y-2 overflow-hidden">
+        <div className="prose max-w-none">{children}</div>
+        <button
+          onClick={handleCopy}
+          className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-700">
+          <Copy className="h-3 w-3" />
+          Copy
+        </button>
       </div>
     </div>
   );
