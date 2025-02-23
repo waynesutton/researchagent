@@ -136,7 +136,7 @@ export function ResearchInterface() {
                     </>
                   )}
                 </button>
-                {isResearching && (
+                {/* {isResearching && (
                   <button
                     type="button"
                     onClick={handleCancel}
@@ -144,7 +144,7 @@ export function ResearchInterface() {
                     <XCircle size={16} />
                     Stop Research
                   </button>
-                )}
+                )} */}
               </div>
             </div>
           </form>
