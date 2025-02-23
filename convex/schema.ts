@@ -42,6 +42,9 @@ export default defineSchema({
     notes: v.optional(v.string()),
     isOpen: v.boolean(),
     createdAt: v.number(),
+    industry: v.optional(v.string()),
+    funding: v.optional(v.string()),
+    confidence: v.optional(v.number()),
   })
     .index("by_createdAt", ["createdAt"])
     .index("by_company", ["companyName"]),

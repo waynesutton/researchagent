@@ -15,6 +15,7 @@ import type {
 } from "convex/server";
 import type * as conversations from "../conversations.js";
 import type * as http from "../http.js";
+import type * as index from "../index.js";
 import type * as messages from "../messages.js";
 import type * as migrations from "../migrations.js";
 import type * as research from "../research.js";
@@ -31,6 +32,7 @@ import type * as researchResults from "../researchResults.js";
 declare const fullApi: ApiFromModules<{
   conversations: typeof conversations;
   http: typeof http;
+  index: typeof index;
   messages: typeof messages;
   migrations: typeof migrations;
   research: typeof research;
