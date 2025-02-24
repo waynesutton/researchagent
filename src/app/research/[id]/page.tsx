@@ -2,15 +2,32 @@
 
 import { useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { ResearchModal } from "@/components/ResearchModal";
-import { useRouter } from "next/navigation";
+import { Id } from "../../../../convex/_generated/dataModel";
+
+// Helper function to safely convert string to Convex ID
+function parseId(id: string): Id<"researchResults"> | null {
+  // Convex IDs are 32 characters long
+  if (typeof id !== "string" || id.length !== 32) {
+    return null;
+  }
+  // This cast is safe because we've verified the format
+  return id as Id<"researchResults">;
+}
 
 export default function ResearchPage() {
   const params = useParams();
   const router = useRouter();
-  const id = params.id as string;
-  const result = useQuery(api.researchResults.get, { id });
+
+  // Safely convert the ID and handle invalid cases
+  const id = parseId(params.id as string);
+  const result = id ? useQuery(api.researchResults.get, { id }) : null;
+
+  if (!id) {
+    router.push("/"); // Redirect to home if ID is invalid
+    return null;
+  }
 
   if (!result) {
     return <div>Loading...</div>;
