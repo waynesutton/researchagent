@@ -40,7 +40,7 @@ http.route({
     const body = await request.json();
     const { messageId, content } = body as { messageId: Id<"messages">; content: string };
 
-    const message = await ctx.runQuery(internal.messages.get, { messageId });
+    const message = await ctx.runMutation(internal.messages.ensureMessageModel, { messageId });
     if (!message) {
       throw new Error("Message not found");
     }

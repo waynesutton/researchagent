@@ -16,11 +16,17 @@ export const migrateMessagesToIncludeModel = internalMutation({
   args: {},
   handler: async (ctx) => {
     const messages = await ctx.db.query("messages").collect();
+    let migratedCount = 0;
 
     for (const message of messages) {
-      if (!message.model) {
+      // Check if model is missing or undefined
+      if (!message.model || message.model === undefined) {
         await ctx.db.patch(message._id, { model: "gpt4" });
+        migratedCount++;
       }
     }
+
+    console.log(`Migrated ${migratedCount} messages to include model field`);
+    return migratedCount;
   },
 });

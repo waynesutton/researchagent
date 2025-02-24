@@ -347,7 +347,9 @@ export const performResearch = internalAction({
   },
   handler: async (ctx, args) => {
     try {
-      const message = await ctx.runQuery(internal.messages.get, { messageId: args.messageId });
+      const message = await ctx.runMutation(internal.messages.ensureMessageModel, {
+        messageId: args.messageId,
+      });
       if (!message) {
         throw new Error("Message not found");
       }
@@ -438,7 +440,9 @@ export const performResearch = internalAction({
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
 
       if (args.messageId) {
-        const message = await ctx.runQuery(internal.messages.get, { messageId: args.messageId });
+        const message = await ctx.runMutation(internal.messages.ensureMessageModel, {
+          messageId: args.messageId,
+        });
         if (message) {
           await ctx.runMutation(internal.messages.send, {
             conversationId: message.conversationId,
