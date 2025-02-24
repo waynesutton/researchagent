@@ -6,10 +6,11 @@ A powerful AI-powered research tool that provides comprehensive company analysis
 
 ### Real-time Research
 
-- 🔍 Instant company research using GPT-4
+- 🔍 Instant company research using multiple AI models (GPT-4, Claude, Mistral, Grok)
 - 📊 Structured analysis with consistent formatting
 - 🔄 Real-time streaming responses
 - ⏹️ Ability to cancel ongoing research
+- 🌐 Web data fetching and validation
 
 ### Comprehensive Analysis
 
@@ -19,38 +20,48 @@ A powerful AI-powered research tool that provides comprehensive company analysis
 - 📈 Recent Developments
 - 🌎 Verified Links & Sources
 - ⭐ Key Highlights
+- 🔍 Vector-based similarity search
 
 ### Data Management
 
 - 📝 Save and organize research results
-- 🔍 Full-width results table
+- 🔍 Full-width results table with collapsible view
 - 📋 One-click copy of research content
 - ✏️ Add custom notes to research entries
 - 🗑️ Delete outdated research entries
+- 🔄 Real-time updates across sessions
 
 ### User Interface
 
-- 🎨 Clean, modern design
-- 📱 Responsive layout
-- 💫 Smooth animations
-- ⚡ Real-time updates
+- 🎨 Clean, modern black and white design
+- 📱 Responsive layout with Tailwind CSS
+- 💫 Smooth animations and transitions
+- ⚡ Real-time updates with Convex
 - 🚫 Research cancellation support
+- 📝 Markdown formatting support
+- 🎯 Modal views for detailed research
 
 ### Technical Features
 
 - 🔒 Built with Convex for real-time data sync
-- 🤖 OpenAI GPT-4 integration
+- 🤖 Multi-model AI integration (GPT-4, Claude, Mistral, Grok)
 - 📊 Vector embeddings for research storage
 - 🔄 Automatic source validation
 - 🏷️ Metadata extraction and storage
+- 🔍 Full-text search capabilities
+- 🔐 Type-safe database queries
 
 ## Built With
 
-- [Next.js](https://nextjs.org/)
-- [Convex](https://www.convex.dev/)
-- [OpenAI](https://openai.com/)
-- [TailwindCSS](https://tailwindcss.com/)
-- [TypeScript](https://www.typescriptlang.org/)
+- [Next.js 14](https://nextjs.org/) - React framework
+- [Convex](https://www.convex.dev/) - Backend and real-time sync
+- [OpenAI GPT-4](https://openai.com/) - Primary AI model
+- [Anthropic Claude](https://www.anthropic.com/) - Secondary AI model
+- [Mistral AI](https://mistral.ai/) - Additional AI model
+- [TailwindCSS](https://tailwindcss.com/) - Styling
+- [TypeScript](https://www.typescriptlang.org/) - Type safety
+- [React Markdown](https://github.com/remarkjs/react-markdown) - Markdown rendering
+- [Lucide React](https://lucide.dev/) - Icons
 
 ## Getting Started
 
@@ -78,14 +89,6 @@ To learn more about Next.js, take a look at the following resources:
 
 - [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
 - [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
 
 # Codebase Structure
 
@@ -155,5 +158,9 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
    - Source display
    - Formatting components
    - Icon integration
+
+## Deployment
+
+The application is deployed on Netlify with automatic deployments from the main branch. Environment variables are managed through Netlify's environment configuration.
 
 [![Netlify Status](https://api.netlify.com/api/v1/badges/61515d34-cbb9-4933-ba64-b3eb60b436ea/deploy-status)](https://app.netlify.com/sites/researchagent/deploys)
